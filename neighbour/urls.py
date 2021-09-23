@@ -9,14 +9,14 @@ from django.contrib.auth import views as auth_views
 urlpatterns = [
   
   path('', views.index, name="index"),
-  path('signup/', views.signup_view, name="register"),
-  path('sent/', views.activation_sent_view, name="activation_sent"),
+  path('register/', views.register, name="register"),
+#   path('sent/', views.activation_sent_view, name="activation_sent"),
 #   path('activate/<slug:uidb64>/<slug:token>/', views.activate, name='activate'),
   path('accounts/login/',views.login,name='login'),
   path('accounts/profile/',views.profile,name='profile'),
   path('update/',views.update_profile,name='update_profile'),
   path('logout/',auth_views.LogoutView.as_view(template_name = 'django_registration/logout.html'),name='logout'),
-  path('search',views.search,name='search'),
+  path('search/',views.search,name='search'),
   path('neighborhood/<int:neighborhood_id>/',views.neighborhood,name='neighborhood'),
   path('create_neighborhood/',views.create_neighborhood,name='create_neighborhood'),
   path('create_business/<int:neighborhood_id>/',views.create_business,name='create_business'),
