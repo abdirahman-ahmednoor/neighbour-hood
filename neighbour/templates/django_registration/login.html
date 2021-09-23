@@ -1,4 +1,4 @@
-{%extends "django_registration/base.html"%}
+{%extends "registration/base.html"%}
 {% load bootstrap4 %}
 {% block content %}
 <div class="container">
@@ -6,10 +6,8 @@
     <!-- Empty div -->
     <div class="col-md-3"></div>
     <div class="col-md-6">
-      {% if messages %}
-        {% for message in messages %}
-        <p class="text-center"> {{ message }}</p>
-          {% endfor %}
+      {% if form.errors %}
+      <p> Password or Username is incorrect </p>
       {% endif %}
       <div class="panel panel-default">
 
@@ -20,10 +18,10 @@
 
           <form action="" method="post">
             {% csrf_token %}
-            {% bootstrap_form form %}
+            {% bootstrap_form form%}
 
             <div class="form-group">
-              <input type="submit" class="btn btn-primary btn-sm" value="Login">
+              <input type="submit" class="btn btn-outline-success" value="Login">
             </div>
 
             <input type="hidden" name="next" value="{{next}}">
