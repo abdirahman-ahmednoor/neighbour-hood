@@ -1,38 +1,7 @@
-{%extends 'django_registration/base.html'%}
-{% block content%}
-<div class="container">
-  <div class="row">
-    <!-- Empty div -->
-    <div class="col s4"></div>
-    <div class="col s4">
-      {% if form.errors %}
-        <p> Some Information Might be Incorrect </p>
-      {% endif %}
-      <div class="panel panel-default">
+<!-- {{% autoescape off %}
+Hi {{ user.username }},
 
-        <div class="panel-heading">
-          <h3 class="text-center">Sign Up</h3>
-        </div>
-        <div class="panel-body">
+Please click the following link to confirm your registration:
 
-          <form  action="/accounts/register/" method="post">
-            {% csrf_token %}
-            {{ form }}
-            <div class="form-group">
-              <input type="submit" class="btn btn-primary btn-sm" value="Sign Up">
-            </div>
-
-            <input type="hidden" name="next" value="{{next}}">
-
-          </form>
-
-        </div>
-
-      </div>
-
-    </div>
-    <!-- empty div -->
-    <div class="col s4"></div>
-  </div>
-</div>
-{% endblock%}
+http://{{ domain }}{% url 'activate' uidb64=uid token=token %}
+{% endautoescape %} -->
