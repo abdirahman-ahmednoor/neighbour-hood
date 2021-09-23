@@ -1,123 +1,283 @@
-from django.shortcuts import render,redirect
-from django.http import HttpResponse,Http404,HttpResponseRedirect
-from .models import UserProfile,Post,Neighborhood,Business,Comment
+from django.contrib.auth import login, authenticate
+from django.shortcuts import render, redirect, get_object_or_404, HttpResponseRedirect
+from django.contrib.sites.shortcuts import get_current_site
+from django.utils.encoding import force_text
+from django.contrib.auth.models import User
+from django.db import IntegrityError
+from django.utils.http import urlsafe_base64_decode
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
+from .tokens import account_activation_token
+from django.template.loader import render_to_string
+from .forms import SignUpForm
+from .tokens import account_activation_token
 from django.contrib.auth.decorators import login_required
-# from rest_framework.response import Response
-# from rest_framework.views import APIView
-# from .serializer import BusinessSerializer
-from .email import send_abdi_email
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib import messages
+from django.contrib.auth import login as auth_login
+from django.core.mail import EmailMessage
+from .models import Profile,NeighborHood,Post,Business
 from .forms import *
+
 
 # Create your views here.
 @login_required
 def index(request):
-    current_user = request.user
-    try:
-        profile = UserProfile.objects.get(user = current_user)
-    except:
-        return redirect('edit_profile',username = current_user.username)
+  current_user = request.user
+  neighborhoods = NeighborHood.objects.all().order_by('-created_at')
+  return render(request, 'index.html',{'current_user':current_user, 'neighborhoods':neighborhoods})
 
-    try:
-        posts = Post.objects.filter(neighborhood = profile.neighborhood)
-    except:
-        posts = None
+def signup_view(request):
+  if request.method  == 'POST':
+    form = SignUpForm(request.POST)
+    if form.is_valid():
+      user = form.save()
+      user.refresh_from_db()
+      user.profile.first_name = form.cleaned_data.get('first_name')
+      user.profile.last_name = form.cleaned_data.get('last_name')
+      user.profile.email = form.cleaned_data.get('email')
+      # user can't login until link confirmed
+      user.is_active = False
+      user.save()
+      current_site = get_current_site(request)
+      subject = 'Please Activate Your Account'
+      # load a template like get_template() 
+      # and calls its render() method immediately.
+      message = render_to_string('registration/activation_request.html', {
+          'user': user,
+          'domain': current_site.domain,
+          'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+          # method will generate a hash value with user related data
+          'token': account_activation_token.make_token(user),
+      })
+      to_email = form.cleaned_data.get('email')
+      email = EmailMessage(subject, message, to=[to_email])
+      email.send()
+      return redirect('activation_sent')
+  else:
+    form = SignUpForm()
+  return render(request, 'registration/signup.html', {'form': form})
 
-    if request.method == 'POST':
-        form = PostForm(request.POST)
-        if form.is_valid():
-            post = form.save(commit=False)
-            post.user = current_user
-            post.neighborhood = profile.neighborhood
-            post.type = request.POST['type']
-            post.save()
-
-            if post.type == '1':
-                recipients = UserProfile.objects.filter(neighborhood=post.neighborhood)
-                for recipient in recipients:
-                    send_abdi_email(post.title,post.content,recipient.email)
-
+def login(request):
+  if request.method == 'POST':
+    form = AuthenticationForm(request=request, data=request.POST)
+    if form.is_valid():
+      username = form.cleaned_data.get('username')
+      password = form.cleaned_data.get('password')
+      user = authenticate(username=username, password=password)
+      if user is not None:
+        auth_login(request, user)
+        messages.info(request, f"You are now logged in as {username}")
         return redirect('index')
+      else:
+        messages.error(request, "Invalid username or password.")
     else:
-        form = PostForm()
-    return render(request,'index.html',{"posts":posts,"profile":profile,"form":form})
+      messages.error(request, "Invalid username or password.")
+  form = AuthenticationForm()
+  return render(request = request,template_name = "registration/login.html",context={"form":form})
 
-@login_required
-def edit_profile(request,username):
-    current_user = request.user
-    if request.method == 'POST':
-        try:
-            profile = UserProfile.objects.get(user=current_user)
-            form = UserProfileForm(request.POST,instance=profile)
-            if form.is_valid():
-                profile = form.save(commit=False)
-                profile.user = current_user
-                profile.save()
-            return redirect('index')
-        except:
-            form = UserProfileForm(request.POST)
-            if form.is_valid():
-                profile = form.save(commit=False)
-                profile.user = current_user
-                profile.save()
-            return redirect('index')
-    else:
-        if UserProfile.objects.filter(user=current_user):
-            profile = UserProfile.objects.get(user=current_user)
-            form = UserProfileForm(instance=profile)
-        else:
-            form = UserProfileForm()
-    return render(request,'edit_profile.html',{"form":form})
+def activation_sent_view(request):
+  return render(request, 'registration/activation_sent.html')
 
-@login_required
-def businesses(request):
-    current_user = request.user
-    neighborhood = UserProfile.objects.get(user = current_user).neighborhood
-    if request.method == 'POST':
-        form = BusinessForm(request.POST)
-        if form.is_valid():
-            business = form.save(commit=False)
-            business.user = current_user
-            business.neighborhood = neighborhood
-            business.save()
-            return redirect('businesses')
-    else:
-        form = BusinessForm()
-
-    try:
-        businesses = Business.objects.filter(neighborhood = neighborhood)
-    except:
-        businesses = None
-
-    return render(request,'businesses.html',{"businesses":businesses,"form":form})
-@login_required
-def post(request,id):
-    post = Post.objects.get(id=id)
-    comments = Comment.objects.filter(post=post)
-    if request.method == 'POST':
-        form = CommentForm(request.POST)
-        if form.is_valid():
-            comment = form.save(commit=False)
-            comment.user = request.user
-            comment.post = post
-            comment.save()
-        return redirect('post',id = post.id)
-    else:
-        form = CommentForm()
-    return render(request,'post.html',{"post":post,"comments":comments,"form":form})
-
-# class BusinessList(APIView):
-#     def get(self, request, format=None):
-#         all_businesses = Business.objects.all()
-#         serializers = BusinessSerializer(all_businesses, many=True)
-#         return Response(serializers.data)
+def activate(request, uidb64, token):
+  try:
+    uid = force_text(urlsafe_base64_decode(uidb64))
+    user = User.objects.get(pk=uid)
+  except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+    user = None
+  # checking if the user exists, if the token is valid.
+  if user is not None and account_activation_token.check_token(user, token):
+    # if valid set active true 
+    user.is_active = True
+    # set signup_confirmation true
+    user.profile.signup_confirmation = True
+    user.save()
+    login(request)
+    return redirect('login')
+  else:
+    return render(request, 'registration/activation_invalid.html')
 
 @login_required
 def search(request):
-    current_user = request.user
-    if 'search' in request.GET and request.GET["search"]:
-        search_term = request.GET.get("search")
-        businesses = Business.objects.filter(name__icontains=search_term)
-        return render(request,'search.html',{'businesses':businesses})
-    else:
-        message = "You haven't searched for any term"
-        return render(request, 'search.html',{"message":message})
+  if 'name' in request.GET and request.GET["name"]:
+    search_term = request.GET.get("name")
+    searched_businesses = Business.search_businesses(search_term)
+    message = f"{search_term}"
+
+    return render(request,'search.html', {"message":message,"businesses":searched_businesses})
+
+  else:
+    message = "You haven't searched for any term"
+    return render(request,'search.html',{"message":message})
+
+@login_required
+def create_neighborhood(request):
+  if request.method == 'POST':
+    add_neighborhood_form = CreateNeighborHoodForm(request.POST, request.FILES)
+    if add_neighborhood_form.is_valid():
+      neighborhood = add_neighborhood_form.save(commit=False)
+      neighborhood.admin = request.user.profile
+      neighborhood.save()
+      return redirect('index')
+  else:
+    add_neighborhood_form = CreateNeighborHoodForm()
+  return render(request, 'create_neighborhood.html', {'add_neighborhood_form': add_neighborhood_form})
+
+@login_required
+def choose_neighborhood(request, neighborhood_id):
+  neighborhood = get_object_or_404(NeighborHood, id=neighborhood_id)
+  request.user.profile.neighborhood = neighborhood
+  request.user.profile.save()
+  return redirect('index')
+
+def get_neighborhood_users(request, neighborhood_id):
+  neighborhood = NeighborHood.objects.get(id=neighborhood_id)
+  users = Profile.objects.filter(neighborhood=neighborhood)
+  return render(request, 'neighborhood_users.html', {'users': users})
+
+@login_required
+def leave_neighborhood(request, neighborhood_id):
+  neighborhood = get_object_or_404(NeighborHood, id=neighborhood_id)
+  request.user.profile.neighborhood = None
+  request.user.profile.save()
+  return redirect('index')
+
+@login_required
+def create_business(request,neighborhood_id):
+  neighborhood = NeighborHood.objects.get(id=neighborhood_id)
+  if request.method == 'POST':
+    add_business_form = CreateBusinessForm(request.POST, request.FILES)
+    if add_business_form.is_valid():
+      business = add_business_form.save(commit=False)
+      business.neighborhood =neighborhood
+      business.user = request.user
+      business.save()
+      return redirect('neighborhood', neighborhood.id)
+  else:
+    add_business_form = CreateBusinessForm()
+  return render(request, 'create_business.html', {'add_business_form': add_business_form,'neighborhood':neighborhood})
+
+@login_required
+def create_post(request, neighborhood_id):
+  neighborhood = NeighborHood.objects.get(id=neighborhood_id)
+  if request.method == 'POST':
+    add_post_form = CreatePostForm(request.POST,request.FILES)
+    if add_post_form.is_valid():
+      post = add_post_form.save(commit=False)
+      post.neighborhood = neighborhood
+      post.user = request.user
+      post.save()
+      return redirect('neighborhood', neighborhood.id)
+  else:
+    add_post_form = CreatePostForm()
+  return render(request, 'create_post.html', {'add_post_form': add_post_form,'neighborhood':neighborhood})
+
+@login_required
+def neighborhood(request, neighborhood_id):
+  current_user = request.user
+  neighborhood = NeighborHood.objects.get(id=neighborhood_id)
+  business = Business.objects.filter(neighborhood=neighborhood)
+  users = Profile.objects.filter(neighborhood=neighborhood)
+  posts = Post.objects.filter(neighborhood=neighborhood)
+
+  return render(request, 'neighborhood.html', {'users':users,'current_user':current_user, 'neighborhood':neighborhood,'business':business,'posts':posts})
+
+@login_required
+def delete_business(request,business_id):
+  current_user = request.user
+  business = Business.objects.get(pk=business_id)
+  if business:
+    business.delete_business()
+  return redirect('index')
+
+@login_required
+def update_business(request, business_id):
+  business = Business.objects.get(pk=business_id)
+  if request.method == 'POST':
+    update_business_form = UpdateBusinessForm(request.POST,request.FILES, instance=business)
+    if update_business_form.is_valid():
+      update_business_form.save()
+      messages.success(request, f'Business updated!')
+      return redirect('index')
+  else:
+    update_business_form = UpdateBusinessForm(instance=business)
+
+  return render(request, 'update_business.html', {"update_business_form":update_business_form})
+
+@login_required
+def delete_post(request,post_id):
+  current_user = request.user
+  post = Post.objects.get(pk=post_id)
+  if post:
+    post.delete_post()
+  return redirect('index')
+
+@login_required
+def update_post(request, post_id):
+  post = Post.objects.get(pk=post_id)
+  if request.method == 'POST':
+    update_post_form = UpdatePostForm(request.POST,request.FILES, instance=post)
+    if update_post_form.is_valid():
+      update_post_form.save()
+      messages.success(request, f'Post updated!')
+      return redirect('index')
+  else:
+    update_post_form = UpdatePostForm(instance=post)
+
+  return render(request, 'update_post.html', {"update_post_form":update_post_form})
+
+@login_required
+def profile(request):
+  current_user = request.user
+  user_posts = Post.objects.filter(user_id = current_user.id).all()
+  
+  return render(request,'profile/profile.html',{'user_posts':user_posts,"current_user":current_user})
+
+@login_required
+def update_profile(request):
+  if request.method == 'POST':
+    user_form = UpdateUser(request.POST,instance=request.user)
+    profile_form = UpdateProfile(request.POST,request.FILES,instance=request.user.profile)
+    if user_form.is_valid() and profile_form.is_valid():
+      user_form.save()
+      profile_form.save()
+      messages.success(request,'Your Profile account has been updated successfully')
+      return redirect('profile')
+  else:
+    user_form = UpdateUser(instance=request.user)
+    profile_form = UpdateProfile(instance=request.user.profile) 
+  params = {
+    'user_form':user_form,
+    'profile_form':profile_form
+  }
+  return render(request,'profile/update.html',params)
+
+@login_required
+def update_neighborhood(request, neighborhood_id):
+  neighborhood = NeighborHood.objects.get(pk=neighborhood_id)
+  if request.method == 'POST':
+    update_neighborhood_form = UpdateNeighborhoodForm(request.POST,request.FILES, instance=neighborhood)
+    if update_neighborhood_form.is_valid():
+      update_neighborhood_form.save()
+      messages.success(request, f'Post updated!')
+      return redirect('index')
+  else:
+    update_neighborhood_form = UpdateNeighborhoodForm(instance=neighborhood)
+
+  return render(request, 'update_neighborhood.html', {"update_neighborhood_form":update_neighborhood_form})
+
+@login_required
+def delete_neighborhood(request,neighborhood_id):
+  current_user = request.user
+  neighborhood = NeighborHood.objects.get(pk=neighborhood_id)
+  if neighborhood:
+    neighborhood.delete_neighborhood()
+  return redirect('index')
+
+@login_required
+def users_profile(request,pk):
+  user = User.objects.get(pk = pk)
+  user_posts = Post.objects.filter(user_id = user.id).all()
+  current_user = request.user
+  
+  return render(request,'profile/users_profile.html',{'user_posts':user_posts,"user":user,"current_user":current_user})
