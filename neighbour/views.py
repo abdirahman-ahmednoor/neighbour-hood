@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 # from rest_framework.response import Response
 # from rest_framework.views import APIView
 # from .serializer import BusinessSerializer
-from .email import send_amber_email
+from .email import send_abdi_email
 from .forms import *
 
 # Create your views here.
@@ -34,7 +34,7 @@ def index(request):
             if post.type == '1':
                 recipients = UserProfile.objects.filter(neighborhood=post.neighborhood)
                 for recipient in recipients:
-                    send_amber_email(post.title,post.content,recipient.email)
+                    send_abdi_email(post.title,post.content,recipient.email)
 
         return redirect('index')
     else:
