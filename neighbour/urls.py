@@ -18,7 +18,7 @@ urlpatterns = [
   path('logout/',auth_views.LogoutView.as_view(template_name = 'django_registration/logout.html'),name='logout'),
   path('search',views.search,name='search'),
   path('neighborhood/<int:neighborhood_id>/',views.neighborhood,name='neighborhood'),
-  path('create_neighborhood',views.create_neighborhood,name='create_neighborhood'),
+  path('create_neighborhood/',views.create_neighborhood,name='create_neighborhood'),
   path('create_business/<int:neighborhood_id>/',views.create_business,name='create_business'),
   path('choose_neighborhood/<int:neighborhood_id>/',views.choose_neighborhood,name='choose_neighborhood'),
   path('leave_neighborhood/<int:neighborhood_id>/',views.leave_neighborhood,name='leave_neighborhood'),
