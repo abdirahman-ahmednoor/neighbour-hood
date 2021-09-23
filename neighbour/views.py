@@ -43,7 +43,7 @@ def signup_view(request):
       subject = 'Please Activate Your Account'
       # load a template like get_template() 
       # and calls its render() method immediately.
-      message = render_to_string('registration/activation_request.html', {
+      message = render_to_string('django_registration/activation_request.html', {
           'user': user,
           'domain': current_site.domain,
           'uid': urlsafe_base64_encode(force_bytes(user.pk)),
@@ -56,7 +56,7 @@ def signup_view(request):
       return redirect('activation_sent')
   else:
     form = SignUpForm()
-  return render(request, 'registration/signup.html', {'form': form})
+  return render(request, 'django_registration/signup.html', {'form': form})
 
 def login(request):
   if request.method == 'POST':
@@ -74,10 +74,10 @@ def login(request):
     else:
       messages.error(request, "Invalid username or password.")
   form = AuthenticationForm()
-  return render(request = request,template_name = "registration/login.html",context={"form":form})
+  return render(request = request,template_name = "django_registration/login.html",context={"form":form})
 
 def activation_sent_view(request):
-  return render(request, 'registration/activation_sent.html')
+  return render(request, 'django_registration/activation_sent.html')
 
 def activate(request, uidb64, token):
   try:
@@ -95,7 +95,7 @@ def activate(request, uidb64, token):
     login(request)
     return redirect('login')
   else:
-    return render(request, 'registration/activation_invalid.html')
+    return render(request, 'django_registration/activation_invalid.html')
 
 @login_required
 def search(request):
