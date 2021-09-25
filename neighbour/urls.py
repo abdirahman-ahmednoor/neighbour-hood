@@ -3,7 +3,8 @@ from django.urls import path
 from django.conf.urls import url
 from . import views 
 from django.contrib.auth import views as auth_views
-
+from django.conf import settings
+from django.conf.urls.static import static
 
 
 urlpatterns = [
@@ -31,3 +32,5 @@ urlpatterns = [
   path('delete_neighborhood/<neighborhood_id>',views.delete_neighborhood,name='delete_neighborhood'),
   path('users/<pk>',views.users_profile,name='users_profile'),
 ]
+if settings.DEBUG:
+    urlpatterns+=static(settings.MEDIA_URL, document_root = settings.MEDIA_ROOT)

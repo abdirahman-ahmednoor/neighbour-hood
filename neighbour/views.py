@@ -60,6 +60,20 @@ def login(request):
   form = AuthenticationForm()
   return render(request = request,template_name = "django_registration/login.html",context={"form":form})
 
+def register(request):
+  if request.method == 'POST':
+    form = SignUpForm(request.POST)
+    if form.is_valid():
+      form.save()
+      email = form.cleaned_data['email']
+      username = form.cleaned_data.get('username')
+
+      messages.success(request,f'Account for {username} created,you can now login')
+      return redirect('login')
+  else:
+    form = SignUpForm()
+  return render(request,'django_registration/signup.html',{"form":form})  
+
 # def activation_sent_view(request):
 #   return render(request, 'django_registration/activation_sent.html')
 
