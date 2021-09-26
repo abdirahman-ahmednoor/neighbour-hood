@@ -27,9 +27,10 @@ def index(request):
   neighborhoods = NeighborHood.objects.all().order_by('-created_at')
   return render(request, 'index.html',{'current_user':current_user, 'neighborhoods':neighborhoods})
 
+
 def login(request):
   if request.method == 'POST':
-    form = AuthenticationForm(request.POST)
+    form = AuthenticationForm(request=request, data=request.POST)
     if form.is_valid():
       username = form.cleaned_data.get('username')
       password = form.cleaned_data.get('password')
@@ -43,7 +44,7 @@ def login(request):
     else:
       messages.error(request, "Invalid username or password.")
   form = AuthenticationForm()
-  return render(request ,"django_registration/login.html",context={"form":form})
+  return render(request = request,template_name = "django_registration/login.html",context={"form":form})
 
 def register(request):
   if request.method == 'POST':
