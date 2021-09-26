@@ -11,8 +11,6 @@ urlpatterns = [
   
   path('', views.index, name="index"),
   path('register/', views.register, name="register"),
-#   path('sent/', views.activation_sent_view, name="activation_sent"),
-#   path('activate/<slug:uidb64>/<slug:token>/', views.activate, name='activate'),
   path('accounts/login/',views.login,name='login'),
   path('accounts/profile/',views.profile,name='profile'),
   path('update/',views.update_profile,name='update_profile'),
