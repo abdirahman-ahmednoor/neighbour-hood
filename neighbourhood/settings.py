@@ -27,12 +27,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# SECRET_KEY = 'django-insecure-b8p(vh=!=_07l#ds7rulic&2e-zxef(vvjcg5n#enioea90+@p'
+SECRET_KEY = 'django-insecure-b8p(vh=!=_07l#ds7rulic&2e-zxef(vvjcg5n#enioea90+@p'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = True
+DEBUG = True
 
-# ALLOWED_HOSTS = []
+ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -57,6 +57,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+     'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'neighbourhood.urls'
@@ -73,7 +74,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'django.template.context_processors.media',
-                'whitenoise.middleware.WhiteNoiseMiddleware',
+               
             ],
         },
     },
