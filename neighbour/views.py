@@ -27,7 +27,6 @@ def index(request):
   neighborhoods = NeighborHood.objects.all().order_by('-created_at')
   return render(request, 'index.html',{'current_user':current_user, 'neighborhoods':neighborhoods})
 
-
 def login(request):
   if request.method == 'POST':
     form = AuthenticationForm(request=request, data=request.POST)
@@ -59,27 +58,6 @@ def register(request):
   else:
     form = SignUpForm()
   return render(request,'django_registration/signup.html',{"form":form})  
-
-# def activation_sent_view(request):
-#   return render(request, 'django_registration/activation_sent.html')
-
-# def activate(request, uidb64, token):
-#   try:
-#     uid = force_text(urlsafe_base64_decode(uidb64))
-#     user = User.objects.get(pk=uid)
-#   except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-#     user = None
-#   # checking if the user exists, if the token is valid.
-#   if user is not None and account_activation_token.check_token(user, token):
-#     # if valid set active true 
-#     user.is_active = True
-#     # set signup_confirmation true
-#     user.profile.signup_confirmation = True
-#     user.save()
-#     login(request)
-#     return redirect('login')
-#   else:
-#     return render(request, 'django_registration/activation_invalid.html')
 
 @login_required
 def search(request):
